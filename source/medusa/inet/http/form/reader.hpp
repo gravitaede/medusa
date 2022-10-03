@@ -58,7 +58,6 @@ public:
     ///////////////////////////////////////////////////////////////////////
     readert(fields_t& fields)
     : eq_((sized_t)'='), amp_((sized_t)'&'),
-      /*end_(empty_.end()),*/ 
       fields_(fields), end_(fields_.end()), field_(end_), on_(0) {
     }
     virtual ~readert() {
@@ -75,14 +74,14 @@ public:
         sized_t sized;
         on_begin();
         while (0 < (amount = reader.read(&sized, 1))) {
-            on(sized);
+            on(sized, reader);
         }
         on_end();
         return count;
     }
 
 protected:
-    typedef void (Derives::*on_t)(const sized_t& sized);
+    typedef void (Derives::*on_t)(const sized_t& sized, reader_t& reader);
     ///////////////////////////////////////////////////////////////////////
     ///////////////////////////////////////////////////////////////////////
     virtual void on_begin() {
@@ -108,15 +107,19 @@ protected:
     }
     ///////////////////////////////////////////////////////////////////////
     ///////////////////////////////////////////////////////////////////////
-    virtual void on(const sized_t& sized) {
+    virtual void on(const sized_t& sized, reader_t& reader) {
         if ((on_)) {
-            (this->*on_)(sized);
+            (this->*on_)(sized, reader);
         }
     }
-    virtual void on_name(const sized_t& sized) {
+    virtual void on_name(const sized_t& sized, reader_t& reader) {
+        sized_t sized_read = 0;
+        if (0 >= (reader.sized_read(sized_read))) {
+            sized_read = sized;
+        }
         if ((field_ != end_)) {
-            if ((sized != eq_)) {
-                if ((sized != amp_)) {
+            if ((sized_read != eq_)) {
+                if ((sized_read != amp_)) {
                     (*field_).name().append(&sized, 1);
                 } else {
                     if (0 < ((*field_).name().length())) {
@@ -132,16 +135,20 @@ protected:
             }
         }
     }
-    virtual void on_value(const sized_t& sized) {
+    virtual void on_value(const sized_t& sized, reader_t& reader) {
+        sized_t sized_read = 0;
+        if (0 >= (reader.sized_read(sized_read))) {
+            sized_read = sized;
+        }
         if ((field_ != end_)) {
-            if ((sized != amp_)) {
+            if ((sized_read != amp_)) {
                 (*field_).value().append(&sized, 1);
             } else {
                 on_next();
             }
         }
     }
-    virtual void on_no_name(const sized_t& sized) {
+    virtual void on_no_name(const sized_t& sized, reader_t& reader) {
         if ((sized == amp_)) {
             on_ = &Derives::on_name;
         }
@@ -152,8 +159,6 @@ protected:
 protected:
     const sized_t eq_;
     const sized_t amp_;
-    /*fields_t empty_;
-    const typename fields_t::iterator end_;*/
     fields_t& fields_;
     typename fields_t::iterator end_;
     typename fields_t::iterator field_;

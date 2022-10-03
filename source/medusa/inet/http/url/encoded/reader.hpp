@@ -73,13 +73,15 @@ public:
     ///////////////////////////////////////////////////////////////////////
     virtual ssize_t read(what_t* what, size_t size) {
         sized_t* sized = 0;
+
         if ((sized = ((sized_t*)what)) && (size)) {
             ssize_t count = 0, amount = 0;
             byte_t x1 = 0, x2 = 0;
             char c = 0;
+
             while (count < size) {
                 if (0 < (amount = reader_.read(sized, 1))) {
-                    switch (c = ((char)*sized)) {
+                    switch (c = ((char)(sized_ = *sized))) {
                     case '%':
                         if (0 < (amount = readx(x1, sized))) {
                             if (0 < (amount = readx(x2, sized))) {
@@ -107,6 +109,12 @@ public:
         }
         return 0;
     }
+    virtual ssize_t sized_read(sized_t& sized) { 
+        ssize_t count = 0;
+        sized = sized_;
+        count = sizeof(sized_);
+        return count; 
+    }
 
 protected:
     ///////////////////////////////////////////////////////////////////////
@@ -132,6 +140,7 @@ protected:
     ///////////////////////////////////////////////////////////////////////
 protected:
     reader_t& reader_;
+    sized_t sized_;
 };
 
 typedef readert<> reader;
